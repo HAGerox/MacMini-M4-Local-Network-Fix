@@ -14,12 +14,13 @@ This AppleScript automates the tedious process of toggling local network permiss
 
 ### Option 1: Use the Pre-Built App (Recommended)
 
-1. Download the `Toggle Local Network.app` from the [latest release](https://github.com/HAGerox/Toggle-Local-Network/releases)
-2. Move it to your Applications folder (optional)
-3. Run the app
-4. Grant Accessibility permissions when prompted (it will show as "Toggle Local Network")
-5. Run the app again
-6. Click "Allow" on the popup to let it control System Settings
+1. Download the `.zip` file from the [latest release](https://github.com/HAGerox/Toggle-Local-Network/releases)
+2. Extract the `Toggle Local Network.app` from the zip file
+3. Move it to your Applications folder (optional)
+4. Run the app
+5. Grant Accessibility permissions when prompted (it will show as "Toggle Local Network")
+6. Run the app again
+7. Click "Allow" on the popup to let it control System Settings
 
 ### Option 2: Build From Source
 
