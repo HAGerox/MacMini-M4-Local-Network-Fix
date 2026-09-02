@@ -7,7 +7,10 @@ on run arguments
 		set navigationStartedAt to current date
 		scriptUnderTest's openLocalNetworkPage()
 		set togglingStartedAt to current date
+		set scrollBeforeReset to scriptUnderTest's permissionScrollValue()
 		set resetRows to scriptUnderTest's resetEnabledPermissions()
+		set scrollAfterReset to scriptUnderTest's permissionScrollValue()
+		if scrollAfterReset is not scrollBeforeReset then error "Reset changed the Local Network scroll position from " & scrollBeforeReset & " to " & scrollAfterReset
 		set verificationStartedAt to current date
 		repeat with rowIndexReference in resetRows
 			set rowIndex to contents of rowIndexReference
@@ -15,7 +18,7 @@ on run arguments
 		end repeat
 		scriptUnderTest's closeSystemSettings()
 		set testFinishedAt to current date
-		return "integration_toggle_roundtrip: PASS (" & (count of resetRows) & " enabled toggles; navigation " & (togglingStartedAt - navigationStartedAt) & "s, toggling " & (verificationStartedAt - togglingStartedAt) & "s, total " & (testFinishedAt - testStartedAt) & "s)"
+		return "integration_toggle_roundtrip: PASS (" & (count of resetRows) & " enabled toggles; scroll unchanged at " & scrollAfterReset & "; navigation " & (togglingStartedAt - navigationStartedAt) & "s, toggling " & (verificationStartedAt - togglingStartedAt) & "s, total " & (testFinishedAt - testStartedAt) & "s)"
 	on error errorMessage number errorNumber
 		try
 			scriptUnderTest's closeSystemSettings()

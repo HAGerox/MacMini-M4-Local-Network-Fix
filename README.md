@@ -18,9 +18,9 @@ This AppleScript automates the tedious process of toggling local network permiss
 2. Extract the `Toggle Local Network.app` from the zip file
 3. Move it to your Applications folder (optional)
 4. Run the app
-5. Grant Accessibility permissions when prompted (it will show as "Toggle Local Network")
+5. Follow the macOS Accessibility prompt and enable "Toggle Local Network"
 6. Run the app again
-7. Click "Allow" on the popup to let it control System Settings
+7. Click "Allow" whenever macOS asks it to control System Events or System Settings
 
 The pre-built app uses the executable name `Toggle Local Network` and the stable
 bundle identifier `com.hagerox.ToggleLocalNetwork`, so macOS can display and
@@ -34,9 +34,9 @@ retain the correct Accessibility entry.
    - File Format: Application
    - Save as: `Toggle Local Network`
 3. Run the newly created app
-4. Grant Accessibility permissions when prompted (it will show as "applet")
+4. Follow the macOS Accessibility prompt and enable "applet"
 5. Run the app again
-6. Click "Allow" on the popup
+6. Click "Allow" whenever macOS asks it to control System Events or System Settings
 
 ### Option 3: Build and Rename for Better Accessibility Label
 
@@ -83,7 +83,7 @@ To have the app run automatically after each reboot (when the network bug would 
 ## Requirements
 
 - macOS Sequoia (tested specifically for this version)
-- Accessibility permissions for the app
+- Accessibility and Automation permissions for the app
 
 **Note:** The script validates the Local Network category with its semantic
 Accessibility identifier, then works only with checkbox rows inside the Local
@@ -100,6 +100,8 @@ The script uses AppleScript and UI automation to:
 - Wait for the window to be renamed to `Local Network` before reading its UI tree
 - Read checkbox rows directly without recursive tree scans
 - Reacquire each row before use so Settings refreshes cannot leave stale references
+- Use each checkbox's native Accessibility press action so off-screen rows can
+  be toggled without changing the list's scroll position
 - Confirm each state remains stable while retaining bounded waits for slow Settings runs
 - Close System Settings and wait for it to terminate
 
@@ -130,7 +132,12 @@ enabled Local Network switch and verifies that it returns to enabled.
 
 ## Notes
 
-- If Accessibility is unavailable, the app asks macOS for access and shows an
-  explanation with a button to open the Accessibility settings page.
+- If Accessibility is unavailable, the app requests the native macOS permission
+  prompt on the first attempt. If the app is run again and access is still
+  unavailable, it shows its own explanation and Settings button. This prevents
+  the native and AppleScript dialogs from appearing together.
+- If Automation is denied or later disabled, macOS returns error `-1743` instead
+  of showing its first-run prompt again. The app explains what to enable and
+  offers to open Privacy & Security > Automation directly.
 - You only need to grant permissions once
 - The pre-built release already has the descriptive name configured
