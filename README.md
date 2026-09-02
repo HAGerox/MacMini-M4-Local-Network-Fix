@@ -63,7 +63,8 @@ Simply run the app whenever you need to reset local network permissions (e.g., a
 3. Toggle all enabled app permissions off and back on
 4. Close System Settings
 
-The process takes about 2-3 seconds per app.
+The process normally takes less than a second per enabled app, plus the time
+System Settings needs to load its Accessibility hierarchy.
 
 ### Run Automatically on Startup
 
@@ -79,16 +80,48 @@ To have the app run automatically after each reboot (when the network bug would 
 - macOS Sequoia (tested specifically for this version)
 - Accessibility permissions for the app
 
-**Note:** This script uses UI element positions (group and button numbers) rather than element names, so it's specifically designed for macOS Sequoia's System Settings layout. It may not work on other macOS versions, but feel free to give it a try.
+**Note:** This script uses semantic Accessibility identifiers exposed by System
+Settings on macOS Sequoia. It does not rely on group or button positions. If Apple
+changes those identifiers in a future macOS release, the script stops with an
+error instead of risking a click on the wrong permission category.
 
 ## How It Works
 
 The script uses AppleScript and UI automation to:
-- Open System Settings to the Privacy & Security pane
-- Navigate to the Local Network section
-- Find all checkboxes that are currently enabled (value 1)
-- Click each one twice (off then on) with a brief delay between clicks
-- Close System Settings
+
+- Wait for any previous System Settings process to finish closing
+- Open the modern Privacy & Security extension URL
+- Find `Local Network_Navigator` by its `AXIdentifier`
+- Wait for the window to be renamed to `Local Network` before reading its UI tree
+- Find checkbox identifiers ending in `_Toggle`
+- Toggle enabled checkboxes off and on, confirming both state changes
+- Close System Settings and wait for it to terminate
+
+Local Network does not have a working direct deep-link anchor on the tested
+Sequoia builds, so the semantic Accessibility navigation step is intentional.
+
+## Tests
+
+The test suite compiles the AppleScript, checks structural safety invariants,
+reproduces the former stale-window `-1728` failure as a control, stress-tests
+launch/navigation/quit cycles, and performs a live toggle round trip.
+
+Run the non-UI compile, static, and helper tests from the repository root:
+
+```bash
+tests/run_tests.sh
+```
+
+When the Mac can be left alone, explicitly run the complete UI suite:
+
+```bash
+RUN_UI_TESTS=1 tests/run_tests.sh all
+```
+
+The integration tests control System Settings and therefore require Accessibility
+permission for the terminal or test runner. They are opt-in because they activate
+and close System Settings. The toggle round-trip test temporarily changes every
+enabled Local Network switch and verifies that it returns to enabled.
 
 ## Notes
 
