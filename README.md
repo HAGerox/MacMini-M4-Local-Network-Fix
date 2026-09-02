@@ -22,6 +22,10 @@ This AppleScript automates the tedious process of toggling local network permiss
 6. Run the app again
 7. Click "Allow" on the popup to let it control System Settings
 
+The pre-built app uses the executable name `Toggle Local Network` and the stable
+bundle identifier `com.hagerox.ToggleLocalNetwork`, so macOS can display and
+retain the correct Accessibility entry.
+
 ### Option 2: Build From Source
 
 1. Open `toggle_local_network.applescript` in Script Editor
@@ -102,9 +106,8 @@ Sequoia builds, so the semantic Accessibility navigation step is intentional.
 
 ## Tests
 
-The test suite compiles the AppleScript, checks structural safety invariants,
-reproduces the former stale-window `-1728` failure as a control, stress-tests
-launch/navigation/quit cycles, and performs a live toggle round trip.
+The test suite compiles the AppleScript, checks that positional and stale named
+window lookups are absent, and performs one live toggle round trip.
 
 Run the non-UI compile, static, and helper tests from the repository root:
 
@@ -115,7 +118,7 @@ tests/run_tests.sh
 When the Mac can be left alone, explicitly run the complete UI suite:
 
 ```bash
-RUN_UI_TESTS=1 tests/run_tests.sh all
+RUN_UI_TESTS=1 tests/run_tests.sh integration
 ```
 
 The integration tests control System Settings and therefore require Accessibility
@@ -125,6 +128,7 @@ enabled Local Network switch and verifies that it returns to enabled.
 
 ## Notes
 
-- The app needs Accessibility permissions to control System Settings
+- If Accessibility is unavailable, the app asks macOS for access and shows an
+  explanation with a button to open the Accessibility settings page.
 - You only need to grant permissions once
 - The pre-built release already has the descriptive name configured

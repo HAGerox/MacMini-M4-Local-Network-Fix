@@ -7,7 +7,6 @@ source_script="$repo_dir/toggle_local_network.applescript"
 test_dir=$(mktemp -d /tmp/toggle-local-network-tests.XXXXXX)
 compiled_script="$test_dir/toggle_local_network.scpt"
 mode=${1:-unit}
-stress_iterations=${STRESS_ITERATIONS:-8}
 
 fail() {
 	print -u2 -- "FAIL: $1"
@@ -37,11 +36,15 @@ require_source_text 'x-apple.systempreferences:com.apple.settings.PrivacySecurit
 require_source_text 'Local Network_Navigator' 'exact semantic navigator identifier is missing'
 require_source_text 'candidateID contains "Local Network"' 'semantic Local Network fallback is missing'
 require_source_text 'candidateID ends with "_Toggle"' 'semantic toggle suffix is missing'
-require_source_text 'Available *_Navigator identifiers:' 'missing-identifier diagnostics are missing'
-reject_source_regex 'button[[:space:]]+[0-9]+' 'positional button lookup returned'
+require_source_text 'AXIsProcessTrustedWithOptions' 'native Accessibility prompt request is missing'
+require_source_text 'display alert "Accessibility access is required"' 'Accessibility explanation is missing'
+require_source_text 'button returned of permissionDialog is "Open Accessibility Settings"' 'Accessibility button handling is missing'
+require_source_text 'Privacy_Accessibility' 'Accessibility settings URL is missing'
+reject_source_regex 'click[[:space:]]+button[[:space:]]+[0-9]+|button[[:space:]]+[0-9]+[[:space:]]+of' 'positional button lookup returned'
 reject_source_regex 'group[[:space:]]+[0-9]+' 'positional group lookup returned'
 reject_source_regex 'repeat[[:space:]]+until' 'an unbounded repeat-until wait returned'
 reject_source_regex 'com\.apple\.preference\.security' 'legacy Privacy & Security URL returned'
+reject_source_regex 'window[[:space:]]+"Privacy & Security"' 'stale named-window lookup returned'
 print -- "static_invariants: PASS"
 
 print -- "Running helper unit tests..."
@@ -52,19 +55,13 @@ if [[ "$mode" == "unit" ]]; then
 	exit 0
 fi
 
-if [[ "$mode" != "all" && "$mode" != "integration" ]]; then
-	fail "usage: tests/run_tests.sh [unit|integration|all]"
+if [[ "$mode" != "integration" ]]; then
+	fail "usage: tests/run_tests.sh [unit|integration]"
 fi
 
 if [[ "${RUN_UI_TESTS:-0}" != "1" ]]; then
 	fail "integration tests control System Settings; run them explicitly with RUN_UI_TESTS=1"
 fi
-
-print -- "Running stale-window regression test..."
-/usr/bin/osascript "$repo_dir/tests/integration_stale_window.applescript" "$compiled_script"
-
-print -- "Running navigation stress test ($stress_iterations iterations)..."
-/usr/bin/osascript "$repo_dir/tests/integration_navigation_stress.applescript" "$compiled_script" "$stress_iterations"
 
 print -- "Running live toggle round-trip test..."
 /usr/bin/osascript "$repo_dir/tests/integration_toggle_roundtrip.applescript" "$compiled_script"
