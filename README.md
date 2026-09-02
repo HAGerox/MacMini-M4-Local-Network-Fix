@@ -67,8 +67,9 @@ Simply run the app whenever you need to reset local network permissions (e.g., a
 3. Toggle all enabled app permissions off and back on
 4. Close System Settings
 
-The process normally takes less than a second per enabled app, plus the time
-System Settings needs to load its Accessibility hierarchy.
+The process starts toggling as soon as the Local Network list is ready. It reads
+each row directly, waits only until the requested state is confirmed stable, and
+uses bounded retries instead of sleeping for several seconds per app.
 
 ### Run Automatically on Startup
 
@@ -84,10 +85,10 @@ To have the app run automatically after each reboot (when the network bug would 
 - macOS Sequoia (tested specifically for this version)
 - Accessibility permissions for the app
 
-**Note:** This script uses semantic Accessibility identifiers exposed by System
-Settings on macOS Sequoia. It does not rely on group or button positions. If Apple
-changes those identifiers in a future macOS release, the script stops with an
-error instead of risking a click on the wrong permission category.
+**Note:** The script validates the Local Network category with its semantic
+Accessibility identifier, then works only with checkbox rows inside the Local
+Network list. If Apple changes that structure, it stops rather than clicking an
+unrelated settings control.
 
 ## How It Works
 
@@ -95,10 +96,11 @@ The script uses AppleScript and UI automation to:
 
 - Wait for any previous System Settings process to finish closing
 - Open the modern Privacy & Security extension URL
-- Find `Local Network_Navigator` by its `AXIdentifier`
+- Find `Local Network_Navigator` in the relevant Privacy & Security button group
 - Wait for the window to be renamed to `Local Network` before reading its UI tree
-- Find checkbox identifiers ending in `_Toggle`
-- Toggle enabled checkboxes off and on, confirming both state changes
+- Read checkbox rows directly without recursive tree scans
+- Reacquire each row before use so Settings refreshes cannot leave stale references
+- Confirm each state remains stable while retaining bounded waits for slow Settings runs
 - Close System Settings and wait for it to terminate
 
 Local Network does not have a working direct deep-link anchor on the tested
@@ -106,8 +108,8 @@ Sequoia builds, so the semantic Accessibility navigation step is intentional.
 
 ## Tests
 
-The test suite compiles the AppleScript, checks that positional and stale named
-window lookups are absent, and performs one live toggle round trip.
+The test suite compiles the AppleScript, checks its bounded-wait and stale-reference
+safeguards, and performs one live toggle round trip.
 
 Run the non-UI compile, static, and helper tests from the repository root:
 
