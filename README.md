@@ -1,143 +1,68 @@
 # Toggle Local Network
 
-An AppleScript utility to fix the M4 Mac mini local network bug that prevents apps from accessing the local network after a reboot. This script automatically toggles local network permissions off and back on for all enabled apps.
+A native macOS utility that works around the M4 Mac mini local-network bug by toggling every enabled Local Network permission off and back on after a reboot.
 
-## The Problem
+## How it works
 
-M4 Mac minis have a bug where apps lose their local network access after a reboot, even though the permissions remain enabled in System Settings. A known workaround is to manually toggle the local network permission for each affected app off and back on.
+The app talks directly to macOS's Accessibility API (`AXUIElement`). It does not use AppleScript, `System Events`, Apple Events, or Automation permission. The only permission it needs is Accessibility.
 
-## The Solution
-
-This AppleScript automates the tedious process of toggling local network permissions for all apps. It opens System Settings, navigates to Privacy & Security > Local Network, and toggles the permission for each enabled app.
+It opens System Settings at Privacy & Security, selects Local Network by its semantic Accessibility identifier, reads every permission row, and presses each enabled switch off and back on. It confirms each change, then rereads the full list throughout an adaptive settling window, including permissions that started off. Normal verification stays on the same page without scrolling, navigating away, or reopening System Settings. A failed attempt still uses a fresh session for recovery. This checks the displayed switch states; a permanently stale display can conceal a saved-state mismatch. The live tests independently reopen Settings after each scenario to check the saved states.
 
 ## Installation
 
-### Option 1: Use the Pre-Built App (Recommended)
+1. [Download the latest alpha](https://github.com/HAGerox/MacMini-M4-Local-Network-Fix/releases/tag/v2.1.0-alpha.1), open the DMG, and drag `Toggle Local Network.app` into Applications.
+2. Open it. The alpha is not notarised, so the first time macOS refuses: go to System Settings > Privacy & Security and click **Open Anyway**.
+3. macOS asks for Accessibility access. Switch on **Toggle Local Network** in Privacy & Security > Accessibility. The app notices and carries on by itself.
 
-1. Download the `.zip` file from the [latest release](https://github.com/HAGerox/Toggle-Local-Network/releases)
-2. Extract the `Toggle Local Network.app` from the zip file
-3. Move it to your Applications folder (optional)
-4. Run the app
-5. Follow the macOS Accessibility prompt and enable "Toggle Local Network"
-6. Run the app again
-7. Click "Allow" whenever macOS asks it to control System Events or System Settings
+To run it after every restart, add it in System Settings > General > Login Items. If the Mac is locked when it starts, it waits until it is unlocked.
 
-The pre-built app uses the executable name `Toggle Local Network` and the stable
-bundle identifier `com.hagerox.ToggleLocalNetwork`, so macOS can display and
-retain the correct Accessibility entry.
+Do not use System Settings while the app is running.
 
-### Option 2: Build From Source
+## Reliability and safety
 
-1. Open `toggle_local_network.applescript` in Script Editor
-2. Export as an Application:
-   - File > Export
-   - File Format: Application
-   - Save as: `Toggle Local Network`
-3. Run the newly created app
-4. Follow the macOS Accessibility prompt and enable "applet"
-5. Run the app again
-6. Click "Allow" whenever macOS asks it to control System Events or System Settings
+- **App identity checks.** Permissions are tracked by name, not position, and every press is refused unless the row still shows the expected app. Apps sharing a name are tracked by order and the run stops rather than guessing if their number changes.
+- **Linked rows.** System Settings links rows of apps with the same name (for example several `CapCom` entries), so pressing one flips them all. These are pressed once per group and switched straight back on.
+- **Adaptive waits.** The app measures how quickly System Settings shows each change. Each enabled app is switched off, allowed to settle, and switched back on before the next app is touched. Settling and response waits use those measurements, which carry over to retries. A press with no effect ends the attempt instead of being repeated in the same session; fixed upper limits prevent indefinite waits.
+- **Retries.** A failed attempt is retried up to three times, each with a freshly launched System Settings. A frozen System Settings is force-quit.
+- **Recovery after interruption.** Before the first press, every permission about to change is saved to `~/Library/Application Support/Toggle Local Network/pending-restore.json`. If a run fails, a final pass in a fresh System Settings switches them back on. If the app is killed or the Mac loses power mid-run, the next run repairs them.
+- **Watchdog recovery.** A watchdog force-quits System Settings after 90 s without progress and relaunches the app after 150 s; the relaunched copy repairs anything left off.
+- **Screen lock.** If the Mac locks during a run, the app waits for the unlock and continues.
+- **One copy at a time.** A second copy (for example a login item and a manual launch) exits immediately.
+- **Clear failure reporting.** If a run cannot finish, an alert names every app that may have been left off, with buttons to try again, open the settings or show the log.
+- **Logs.** Every run is logged to `~/Library/Logs/Toggle Local Network`, with an Accessibility snapshot of System Settings after any failed attempt.
 
-### Option 3: Build and Rename for Better Accessibility Label
+Runtime depends on System Settings' response speed. On the development Mac, a live reset of 48 enabled permissions took about 23 seconds, including verification on the current page.
 
-If you build from source, the app will show up as "applet" in the Accessibility permissions list. To give it a more descriptive name:
+## Build from source
 
-1. Build the app following Option 2
-2. Right-click the app and select "Show Package Contents"
-3. Navigate to `Contents/MacOS/`
-4. Rename the `applet` executable to something descriptive (e.g., `Toggle Local Network`)
-5. Open `Contents/Info.plist` in a text editor
-6. Change the `CFBundleExecutable` value to match your new executable name:
-   ```xml
-   <key>CFBundleExecutable</key>
-   <string>Toggle Local Network</string>
-   ```
-7. Re-sign the app:
-   ```bash
-   codesign --force --deep --sign - "/path/to/Toggle Local Network.app"
-   ```
-8. Now when you grant Accessibility permissions, it will show up with your chosen name
+This project requires macOS 15 or later and Swift 6.
 
-## Usage
+```bash
+scripts/build_app.sh          # Release/Toggle Local Network.app and .zip
+scripts/build_dmg.sh          # also Release/Toggle Local Network <version>.dmg
+```
 
-Simply run the app whenever you need to reset local network permissions (e.g., after a reboot). The script will:
+The app is a universal binary (Apple silicon and Intel). Its bundle identifier is `com.hagerox.ToggleLocalNetwork`. Supply a stable certificate so Accessibility approval survives rebuilds:
 
-1. Open System Settings
-2. Navigate to Privacy & Security > Local Network
-3. Toggle all enabled app permissions off and back on
-4. Close System Settings
+```bash
+CODE_SIGN_IDENTITY="Apple Development: your certificate name" scripts/build_dmg.sh
+```
 
-The process starts toggling as soon as the Local Network list is ready. It reads
-each row directly, waits only until the requested state is confirmed stable, and
-uses bounded retries instead of sleeping for several seconds per app.
-
-### Run Automatically on Startup
-
-To have the app run automatically after each reboot (when the network bug would occur):
-
-1. Open System Settings > General > Login Items
-2. Click the "+" button under "Open at Login"
-3. Select the `Toggle Local Network.app`
-4. The app will now run automatically when you log in
-
-## Requirements
-
-- macOS Sequoia (tested specifically for this version)
-- Accessibility and Automation permissions for the app
-
-**Note:** The script validates the Local Network category with its semantic
-Accessibility identifier, then works only with checkbox rows inside the Local
-Network list. If Apple changes that structure, it stops rather than clicking an
-unrelated settings control.
-
-## How It Works
-
-The script uses AppleScript and UI automation to:
-
-- Wait for any previous System Settings process to finish closing
-- Open the modern Privacy & Security extension URL
-- Find `Local Network_Navigator` in the relevant Privacy & Security button group
-- Wait for the window to be renamed to `Local Network` before reading its UI tree
-- Read checkbox rows directly without recursive tree scans
-- Reacquire each row before use so Settings refreshes cannot leave stale references
-- Use each checkbox's native Accessibility press action so off-screen rows can
-  be toggled without changing the list's scroll position
-- Confirm each state remains stable while retaining bounded waits for slow Settings runs
-- Close System Settings and wait for it to terminate
-
-Local Network does not have a working direct deep-link anchor on the tested
-Sequoia builds, so the semantic Accessibility navigation step is intentional.
+Without one, the scripts sign ad hoc and macOS may require the rebuilt app to be re-enabled in Accessibility settings.
 
 ## Tests
 
-The test suite compiles the AppleScript, checks its bounded-wait and stale-reference
-safeguards, and performs one live toggle round trip.
-
-Run the non-UI compile, static, and helper tests from the repository root:
+Unit, chaos and build tests use a simulated System Settings and never touch the real one:
 
 ```bash
 tests/run_tests.sh
+CHAOS_SEEDS=20000 tests/run_tests.sh   # longer randomised soak
 ```
 
-When the Mac can be left alone, explicitly run the complete UI suite:
+The live suite runs inside the app bundle against the real System Settings. It temporarily changes Local Network switches and checks that every switch ends where it started:
 
 ```bash
-RUN_UI_TESTS=1 tests/run_tests.sh integration
+CODE_SIGN_IDENTITY="Apple Development: your certificate name" RUN_UI_TESTS=1 tests/run_tests.sh integration
 ```
 
-The integration tests control System Settings and therefore require Accessibility
-permission for the terminal or test runner. They are opt-in because they activate
-and close System Settings. The toggle round-trip test temporarily changes every
-enabled Local Network switch and verifies that it returns to enabled.
-
-## Notes
-
-- If Accessibility is unavailable, the app requests the native macOS permission
-  prompt on the first attempt. If the app is run again and access is still
-  unavailable, it shows its own explanation and Settings button. This prevents
-  the native and AppleScript dialogs from appearing together.
-- If Automation is denied or later disabled, macOS returns error `-1743` instead
-  of showing its first-run prompt again. The app explains what to enable and
-  offers to open Privacy & Security > Automation directly.
-- You only need to grant permissions once
-- The pre-built release already has the descriptive name configured
+It covers a normal reset, scroll position, System Settings open on another pane or already on Local Network, a frozen System Settings, System Settings killed mid-reset, the app crashing mid-reset, the app hanging mid-reset, a press aimed at the wrong row, System Settings in German, focus stolen during a reset, two copies at once, and repeated back-to-back resets. The app must have Accessibility permission, and the Mac must stay unlocked.
