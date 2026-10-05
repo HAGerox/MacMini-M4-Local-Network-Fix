@@ -16,7 +16,6 @@ staging=$(/usr/bin/mktemp -d /tmp/toggle-local-network-dmg.XXXXXX)
 trap '/bin/rm -rf -- "$staging"' EXIT
 /usr/bin/ditto "$output_dir/Toggle Local Network.app" "$staging/Toggle Local Network.app"
 /bin/ln -s /Applications "$staging/Applications"
-/bin/cp "$repo_dir/App/Read Me First.txt" "$staging/Read Me First.txt"
 
 /bin/rm -f -- "$dmg_path"
 /usr/bin/hdiutil create -quiet -fs HFS+ -format UDZO -imagekey zlib-level=9 \
