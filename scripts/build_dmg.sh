@@ -5,7 +5,6 @@ set -euo pipefail
 
 repo_dir=${0:A:h:h}
 output_dir=${1:-"$repo_dir/Release"}
-signing_identity=${CODE_SIGN_IDENTITY:--}
 version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$repo_dir/App/Info.plist")
 label=${DMG_LABEL:-$version}
 volume_name="Toggle Local Network $label"
@@ -22,7 +21,7 @@ trap '/bin/rm -rf -- "$staging"' EXIT
 /bin/rm -f -- "$dmg_path"
 /usr/bin/hdiutil create -quiet -fs HFS+ -format UDZO -imagekey zlib-level=9 \
 	-volname "$volume_name" -srcfolder "$staging" "$dmg_path"
-/usr/bin/codesign --force --timestamp=none --sign "$signing_identity" "$dmg_path"
+# The DMG is left unsigned so Gatekeeper only asks once, for the app.
 /usr/bin/hdiutil verify -quiet "$dmg_path"
 
 print -- "Built $dmg_path"
