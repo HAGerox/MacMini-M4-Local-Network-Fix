@@ -1,11 +1,11 @@
-Toggle Local Network 2.1.0 alpha (build 8)
+Toggle Local Network 2.1.0 (build 9)
 
 A workaround for the M4 Mac mini local-network issue after a restart.
 Requires macOS 15 or later. Includes Apple silicon and Intel support.
 
 INSTALL
 Drag Toggle Local Network.app to Applications.
-This alpha is signed but not notarised. If macOS blocks the first launch,
+This app is signed but not notarised. If macOS blocks the first launch,
 open System Settings > Privacy & Security and choose Open Anyway.
 
 ALLOW ACCESSIBILITY
@@ -22,9 +22,9 @@ the same page; a failed attempt may reopen Settings to recover.
 To run after a restart, add the app in General > Login Items.
 It waits for the Mac to be unlocked.
 
-This is an alpha. Verification checks displayed switch values; a stale
-Settings display can conceal a saved-state mismatch. If the app reports a
-failure, check the Local Network permissions before relying on access.
+Verification checks displayed switch values; a stale Settings display can
+conceal a saved-state mismatch. If the app reports a failure, check the
+Local Network permissions before relying on access.
 Logs are stored locally in ~/Library/Logs/Toggle Local Network and may
 include application names and a snapshot of System Settings. Review logs
 before sharing them. No logs or diagnostics are automatically uploaded.

@@ -10,8 +10,8 @@ It opens System Settings at Privacy & Security, selects Local Network by its sem
 
 ## Installation
 
-1. [Download the latest alpha](https://github.com/HAGerox/MacMini-M4-Local-Network-Fix/releases/tag/v2.1.0-alpha.1), open the DMG, and drag `Toggle Local Network.app` into Applications.
-2. Open it. The alpha is not notarised, so the first time macOS refuses: go to System Settings > Privacy & Security and click **Open Anyway**.
+1. [Download the latest release](https://github.com/HAGerox/MacMini-M4-Local-Network-Fix/releases/latest/download/Toggle-Local-Network-macOS.dmg), open the DMG, and drag `Toggle Local Network.app` into Applications.
+2. Open it. The app is not notarised, so the first time macOS refuses: go to System Settings > Privacy & Security and click **Open Anyway**.
 3. macOS asks for Accessibility access. Switch on **Toggle Local Network** in Privacy & Security > Accessibility. The app notices and carries on by itself.
 
 To run it after every restart, add it in System Settings > General > Login Items. If the Mac is locked when it starts, it waits until it is unlocked.

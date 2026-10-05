@@ -227,7 +227,7 @@ public struct ResetConfiguration: Sendable {
     timeout: TimeInterval = 20,
     pollInterval: TimeInterval = 0.03,
     restoreTimeout: TimeInterval = 15,
-    minimumPatience: TimeInterval = 1
+    minimumPatience: TimeInterval = 3
   ) {
     self.timeout = timeout
     self.pollInterval = pollInterval

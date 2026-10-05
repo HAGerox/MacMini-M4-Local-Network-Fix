@@ -20,7 +20,9 @@ public struct SettingsConfiguration: Sendable {
   public var pollInterval: TimeInterval
   /// How long the row count must stay unchanged before the list counts as loaded.
   public var listSettleInterval: TimeInterval
-  /// How long an empty Local Network page is watched before accepting it as empty.
+  /// How long the Local Network list must stay absent before the page is
+  /// accepted as empty. Long, because a list still loading at startup must
+  /// never be mistaken for one with nothing to reset.
   public var emptyListGrace: TimeInterval
   public var navigationRetryInterval: TimeInterval
   /// Upper bound for any single Accessibility call to System Settings.
@@ -31,7 +33,7 @@ public struct SettingsConfiguration: Sendable {
     quitTimeout: TimeInterval = 5,
     pollInterval: TimeInterval = 0.03,
     listSettleInterval: TimeInterval = 0.25,
-    emptyListGrace: TimeInterval = 3,
+    emptyListGrace: TimeInterval = 10,
     navigationRetryInterval: TimeInterval = 1.5,
     messagingTimeout: Float = 3
   ) {
@@ -191,7 +193,6 @@ public final class SystemSettingsController: SettingsSession {
 
     var activated = false
     var nextNavigationAttempt = Date.distantPast
-    var pageOpenedAt: Date?
     lastRowCount = -1
     var rowCountChangedAt = Date()
 
@@ -207,10 +208,16 @@ public final class SystemSettingsController: SettingsSession {
       do {
         if let window = try localNetworkWindow() {
           let now = Date()
-          pageOpenedAt = pageOpenedAt ?? now
           // The cheap row count shows when loading has finished; one full
-          // read then proves every row can be read before continuing.
-          let count = (try? listRows(of: outline(in: window)).count) ?? 0
+          // read then proves every row can be read before continuing. Only a
+          // list that is cleanly absent counts as empty: a failed read means
+          // System Settings is still busy, and is polled again.
+          let count: Int
+          do {
+            count = try listRows(of: outline(in: window)).count
+          } catch LocalNetworkError.localNetworkListNotFound {
+            count = 0
+          }
           if count != lastRowCount {
             lastRowCount = count
             rowCountChangedAt = now
@@ -220,8 +227,8 @@ public final class SystemSettingsController: SettingsSession {
           {
             pageHadRows = true
             return
-          } else if count == 0, let pageOpenedAt,
-            now.timeIntervalSince(pageOpenedAt) >= configuration.emptyListGrace
+          } else if count == 0,
+            now.timeIntervalSince(rowCountChangedAt) >= configuration.emptyListGrace
           {
             // No app has requested Local Network access.
             return
@@ -426,21 +433,8 @@ public final class SystemSettingsController: SettingsSession {
         return window
       }
     }
-    // Fallback for an unrecognised title: after pressing the exact Local
-    // Network navigator, a window whose navigator has gone and which now shows
-    // a permission list can only be the Local Network page.
-    if let navigatorPressedAt, Date().timeIntervalSince(navigatorPressedAt) >= 1.5 {
-      for window in windows where try navigatorButton(in: window) == nil {
-        if let title = try window.stringValue(for: kAXTitleAttribute as String),
-          !title.isEmpty,
-          (try? rows(in: window).isEmpty) == false
-        {
-          pageTitles.insert(title)
-          pageTitle = title
-          return window
-        }
-      }
-    }
+    // Only a positively identified Local Network page is used, so switches on
+    // any other privacy page can never be pressed.
     return nil
   }
 
@@ -524,7 +518,7 @@ public final class SystemSettingsController: SettingsSession {
     let rowElements = try listRows(of: outline)
     // A row that fails to answer aborts the whole read rather than being
     // skipped, so a permission can never be silently left out.
-    return try rowElements.indices.compactMap {
+    return try rowElements.indices.map {
       try resolveRetrying(index: $0, in: outline, first: rowElements)
     }
   }
@@ -535,12 +529,10 @@ public final class SystemSettingsController: SettingsSession {
     }
     let outline = try outline(in: window)
     let rowElements = try listRows(of: outline)
-    guard rowElements.indices.contains(index),
-      let resolved = try resolveRetrying(index: index, in: outline, first: rowElements)
-    else {
+    guard rowElements.indices.contains(index) else {
       throw LocalNetworkError.rowNoLongerExists(index)
     }
-    return resolved
+    return try resolveRetrying(index: index, in: outline, first: rowElements)
   }
 
   /// The outline's rows in one Accessibility call.
@@ -553,12 +545,16 @@ public final class SystemSettingsController: SettingsSession {
   /// returns a live element, so every row is read without ever skipping one.
   private func resolveRetrying(
     index: Int, in outline: AccessibilityElement, first rowElements: [AccessibilityElement]
-  ) throws -> ResolvedRow? {
+  ) throws -> ResolvedRow {
     var rows = rowElements
     var attempt = 0
     while true {
       do {
-        return try resolve(row: rows[index], index: index, listSize: rows.count)
+        // A row whose switch is not exposed yet is retried like any other
+        // unreadable row, never skipped.
+        guard let resolved = try resolve(row: rows[index], index: index, listSize: rows.count)
+        else { throw LocalNetworkError.rowNoLongerExists(index) }
+        return resolved
       } catch {
         attempt += 1
         if error.isFatalAccessibilityError || attempt >= 5 {

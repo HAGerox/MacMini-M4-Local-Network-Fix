@@ -82,8 +82,8 @@ public final class SingleInstanceLock {
   }
 }
 
-/// Appends timestamped lines to ~/Library/Logs/Toggle Local Network, so alpha
-/// testers can send a complete history of every run.
+/// Appends timestamped lines to ~/Library/Logs/Toggle Local Network, so
+/// users can send a complete history of every run.
 public final class RunLog: @unchecked Sendable {
   public static let shared = RunLog()
 
