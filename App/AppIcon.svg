@@ -1,0 +1,10 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- The apps.finnstanley.com icon, scaled to the macOS 824 px icon grid. -->
+  <g transform="translate(512 512) scale(0.953704) translate(-512 -512)">
+    <rect x="80" y="80" width="864" height="864" rx="194" fill="#172A3A"/>
+    <rect x="236" y="286" width="552" height="188" rx="94" fill="#78C7F5"/>
+    <circle cx="690" cy="380" r="68" fill="#F4FAFF"/>
+    <rect x="236" y="550" width="552" height="188" rx="94" fill="#426177"/>
+    <circle cx="334" cy="644" r="68" fill="#F4FAFF"/>
+  </g>
+</svg>

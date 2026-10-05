@@ -17,6 +17,8 @@ binary_dir=$(swift build --package-path "$repo_dir" -c release --arch arm64 --ar
 /bin/rm -rf -- "$app_path"
 /bin/mkdir -p -- "$contents_path/MacOS"
 /bin/cp -- "$repo_dir/App/Info.plist" "$contents_path/Info.plist"
+/bin/mkdir -p -- "$contents_path/Resources"
+/bin/cp -- "$repo_dir/App/AppIcon.icns" "$contents_path/Resources/AppIcon.icns"
 /bin/cp -- "$binary_dir/ToggleLocalNetwork" "$contents_path/MacOS/Toggle Local Network"
 /usr/bin/codesign --force --options runtime --timestamp=none --sign "$signing_identity" "$app_path"
 /bin/rm -f -- "$zip_path"
